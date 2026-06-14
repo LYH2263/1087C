@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vite'
 
 export default defineConfig({
   server: {
@@ -25,5 +25,9 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist'
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true
   }
-});
+})

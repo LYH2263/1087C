@@ -1,64 +1,36 @@
-import './styles.css';
-import { api } from './api';
-import { state, normalizeBookSearch, escapeHtmlAttr } from './state';
-import { createViewController } from './views/view-controller';
-import { bindEventHandlers } from './handlers/event-binders';
+import './styles.css'
+import { api } from './api'
+import { state, normalizeBookSearch, escapeHtmlAttr } from './state'
+import { createViewController } from './views/view-controller'
+import { bindEventHandlers } from './handlers/event-binders'
+import { toChineseToast } from './utils/toast'
 
-const viewContent = document.getElementById('view-content');
-const viewTitle = document.getElementById('view-title');
-const modal = document.getElementById('modal');
-const toastHost = document.getElementById('toast');
-const loginBtn = document.getElementById('login-btn');
-const logoutBtn = document.getElementById('logout-btn');
-const userChip = document.getElementById('user-chip');
-const adminNavBtn = document.querySelector('[data-view="admin"]');
-const adminNavSection = document.getElementById('admin-nav');
+const viewContent = document.getElementById('view-content')
+const viewTitle = document.getElementById('view-title')
+const modal = document.getElementById('modal')
+const toastHost = document.getElementById('toast')
+const loginBtn = document.getElementById('login-btn')
+const logoutBtn = document.getElementById('logout-btn')
+const userChip = document.getElementById('user-chip')
+const adminNavBtn = document.querySelector('[data-view="admin"]')
+const adminNavSection = document.getElementById('admin-nav')
 
 document.querySelectorAll('.nav-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
-    setView(btn.dataset.view);
-  });
-});
-
-const toastMap = [
-  [/(network|fetch|failed to fetch|timeout)/i, '网络请求失败，请检查连接'],
-  [/invalid credentials|invalid password|unauthorized|invalid token/i, '账号或密码错误'],
-  [/username exists|username_exists/i, '用户名已被占用'],
-  [/email exists|email_exists/i, '邮箱已被占用'],
-  [/phone exists|phone_exists/i, '手机号已被占用'],
-  [/account exists|user exists|already exists/i, '账号已存在'],
-  [/validation_error|输入校验失败/i, '提交信息不完整或格式有误'],
-  [/not found/i, '未找到相关数据'],
-  [/insufficient stock/i, '库存不足'],
-  [/cart empty|cart_empty/i, '当前购物车为空,请到书籍查询页面购买书籍.'],
-  [/order not/gi, '订单状态不匹配，请刷新后重试'],
-  [/order not payable|order_not_payable/i, '该订单当前不可支付'],
-  [/address not found/i, '未找到收货地址'],
-  [/category exists/i, '分类已存在'],
-  [/book exists/i, '书籍已存在'],
-  [/invalid_file_type/i, '仅支持 JPG/PNG/WEBP/GIF/SVG 格式图片'],
-  [/file_too_large/i, '图片大小不能超过 2MB'],
-  [/forbidden/i, '没有权限执行该操作'],
-  [/internal server error/i, '服务器开小差了，请稍后再试']
-];
-
-function toChineseToast(message) {
-  if (!message) return '操作失败，请稍后再试';
-  const found = toastMap.find(([regex]) => regex.test(message));
-  if (found) return found[1];
-  if (/^[\u4e00-\u9fa5]/.test(message)) return message;
-  return '操作失败，请检查输入或稍后再试';
-}
+    setView(btn.dataset.view)
+  })
+})
 
 function showToast(message, type = 'info') {
-  const el = document.createElement('div');
-  const color = type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-emerald-500' : 'bg-slate-800';
-  el.className = `text-white px-4 py-2 rounded-xl shadow-lg text-sm ${color}`;
-  el.textContent = toChineseToast(message);
-  toastHost.appendChild(el);
+  const el = document.createElement('div')
+  const color =
+    type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-emerald-500' : 'bg-slate-800'
+  el.className = `text-white px-4 py-2 rounded-xl shadow-lg text-sm ${color}`
+  el.textContent = toChineseToast(message)
+  toastHost.appendChild(el)
   setTimeout(() => {
-    el.remove();
-  }, 2000);
+    el.remove()
+  }, 2000)
 }
 
 function openModal(content) {
@@ -67,15 +39,15 @@ function openModal(content) {
       <button class="absolute right-4 top-4 text-slate-400 hover:text-slate-700" data-action="close-modal">✕</button>
       ${content}
     </div>
-  `;
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
+  `
+  modal.classList.remove('hidden')
+  modal.classList.add('flex')
 }
 
 function closeModal() {
-  modal.classList.add('hidden');
-  modal.classList.remove('flex');
-  modal.innerHTML = '';
+  modal.classList.add('hidden')
+  modal.classList.remove('flex')
+  modal.innerHTML = ''
 }
 
 const { updateAuthUI, safeRender } = createViewController({
@@ -89,23 +61,29 @@ const { updateAuthUI, safeRender } = createViewController({
   adminNavSection,
   escapeHtmlAttr,
   showToast
-});
+})
 
 async function loadBooks(params = {}) {
-  if (params.title !== undefined || params.author !== undefined || params.isbn !== undefined ||
-      params.categoryId !== undefined || params.sort !== undefined ||
-      params.minPrice !== undefined || params.maxPrice !== undefined) {
-    state.bookSearch = normalizeBookSearch(params);
-    state.bookPagination.page = 1;
+  if (
+    params.title !== undefined ||
+    params.author !== undefined ||
+    params.isbn !== undefined ||
+    params.categoryId !== undefined ||
+    params.sort !== undefined ||
+    params.minPrice !== undefined ||
+    params.maxPrice !== undefined
+  ) {
+    state.bookSearch = normalizeBookSearch(params)
+    state.bookPagination.page = 1
   }
-  state.loading.books = true;
-  safeRender();
+  state.loading.books = true
+  safeRender()
   const result = await api.getBooks({
     ...state.bookSearch,
     page: state.bookPagination.page,
     pageSize: state.bookPagination.pageSize
-  });
-  state.books = result.items;
+  })
+  state.books = result.items
   state.bookPagination = {
     page: result.page,
     pageSize: result.pageSize,
@@ -113,27 +91,31 @@ async function loadBooks(params = {}) {
     totalPages: result.totalPages,
     hasNext: result.hasNext,
     hasPrev: result.hasPrev
-  };
-  state.loading.books = false;
-  safeRender();
+  }
+  state.loading.books = false
+  safeRender()
 }
 
 async function loadCategories() {
-  state.categories = await api.getCategories();
+  state.categories = await api.getCategories()
 }
 
 async function loadCart() {
-  if (!state.user) return;
-  state.cart = await api.getCart();
+  if (!state.user) {
+    return
+  }
+  state.cart = await api.getCart()
 }
 
 async function loadOrders() {
-  if (!state.user) return;
+  if (!state.user) {
+    return
+  }
   const result = await api.getOrders({
     page: state.orderPagination.page,
     pageSize: state.orderPagination.pageSize
-  });
-  state.orders = result.items;
+  })
+  state.orders = result.items
   state.orderPagination = {
     page: result.page,
     pageSize: result.pageSize,
@@ -141,21 +123,25 @@ async function loadOrders() {
     totalPages: result.totalPages,
     hasNext: result.hasNext,
     hasPrev: result.hasPrev
-  };
+  }
 }
 
 async function loadAddresses() {
-  if (!state.user) return;
-  state.addresses = await api.getAddresses();
+  if (!state.user) {
+    return
+  }
+  state.addresses = await api.getAddresses()
 }
 
 async function loadAdminBooks() {
-  if (!state.user || state.user.role !== 'ADMIN') return;
+  if (!state.user || state.user.role !== 'ADMIN') {
+    return
+  }
   const result = await api.admin.getBooks({
     page: state.admin.bookPagination.page,
     pageSize: state.admin.bookPagination.pageSize
-  });
-  state.admin.books = result.items;
+  })
+  state.admin.books = result.items
   state.admin.bookPagination = {
     page: result.page,
     pageSize: result.pageSize,
@@ -163,16 +149,18 @@ async function loadAdminBooks() {
     totalPages: result.totalPages,
     hasNext: result.hasNext,
     hasPrev: result.hasPrev
-  };
+  }
 }
 
 async function loadAdminOrders() {
-  if (!state.user || state.user.role !== 'ADMIN') return;
+  if (!state.user || state.user.role !== 'ADMIN') {
+    return
+  }
   const result = await api.admin.getOrders({
     page: state.admin.orderPagination.page,
     pageSize: state.admin.orderPagination.pageSize
-  });
-  state.admin.orders = result.items;
+  })
+  state.admin.orders = result.items
   state.admin.orderPagination = {
     page: result.page,
     pageSize: result.pageSize,
@@ -180,44 +168,52 @@ async function loadAdminOrders() {
     totalPages: result.totalPages,
     hasNext: result.hasNext,
     hasPrev: result.hasPrev
-  };
+  }
 }
 
 async function loadAdmin() {
-  if (!state.user || state.user.role !== 'ADMIN') return;
-  state.loading.admin = true;
+  if (!state.user || state.user.role !== 'ADMIN') {
+    return
+  }
+  state.loading.admin = true
   await Promise.all([
     loadAdminBooks(),
     loadAdminOrders(),
-    api.admin.getCategories().then(cats => { state.admin.categories = cats; }),
-    api.admin.getOrderStats().then(stats => { state.admin.stats = stats; })
-  ]);
-  state.loading.admin = false;
+    api.admin.getCategories().then((cats) => {
+      state.admin.categories = cats
+    }),
+    api.admin.getOrderStats().then((stats) => {
+      state.admin.stats = stats
+    })
+  ])
+  state.loading.admin = false
 }
 
 const viewLoaders = {
   books: async () => {
-    await loadCategories();
-    await loadBooks(state.bookSearch);
+    await loadCategories()
+    await loadBooks(state.bookSearch)
   },
   cart: async () => {
-    await loadCart();
-    await loadAddresses();
+    await loadCart()
+    await loadAddresses()
   },
   orders: loadOrders,
   profile: loadAddresses,
   admin: loadAdmin
-};
+}
 
 async function setView(view) {
-  state.view = view;
+  state.view = view
   try {
-    const loader = viewLoaders[view];
-    if (loader) await loader();
+    const loader = viewLoaders[view]
+    if (loader) {
+      await loader()
+    }
   } catch (error) {
-    showToast(error.message || '加载失败', 'error');
+    showToast(error.message || '加载失败', 'error')
   }
-  safeRender();
+  safeRender()
 }
 
 function openLoginModal() {
@@ -237,7 +233,7 @@ function openLoginModal() {
         <button class="text-teal-700" data-action="show-forgot">忘记密码</button>
       </div>
     </div>
-  `);
+  `)
 }
 
 function openRegisterModal() {
@@ -253,7 +249,7 @@ function openRegisterModal() {
       </form>
       <button class="text-teal-700 text-sm" data-action="show-login">已有账号？登录</button>
     </div>
-  `);
+  `)
 }
 
 function openForgotModal() {
@@ -277,7 +273,7 @@ function openForgotModal() {
       </form>
       <button class="text-teal-700 text-sm" data-action="show-login">返回登录</button>
     </div>
-  `);
+  `)
 }
 
 function openResetModal(token = '') {
@@ -290,18 +286,18 @@ function openResetModal(token = '') {
         <button class="btn-primary w-full" type="submit">更新密码</button>
       </form>
     </div>
-  `);
+  `)
 }
 
-loginBtn.addEventListener('click', openLoginModal);
+loginBtn.addEventListener('click', openLoginModal)
 logoutBtn.addEventListener('click', async () => {
-  await api.logout();
-  api.clearToken();
-  state.user = null;
-  updateAuthUI();
-  showToast('已退出登录', 'success');
-  await setView('books');
-});
+  await api.logout()
+  api.clearToken()
+  state.user = null
+  updateAuthUI()
+  showToast('已退出登录', 'success')
+  await setView('books')
+})
 
 bindEventHandlers({
   state,
@@ -326,19 +322,19 @@ bindEventHandlers({
   openRegisterModal,
   openForgotModal,
   openResetModal
-});
+})
 
 async function bootstrap() {
-  api.initToken();
+  api.initToken()
   try {
-    const me = await api.getMe();
-    state.user = me;
+    const me = await api.getMe()
+    state.user = me
   } catch (error) {
-    state.user = null;
+    state.user = null
   }
 
-  updateAuthUI();
-  await setView('books');
+  updateAuthUI()
+  await setView('books')
 }
 
-bootstrap();
+bootstrap()
