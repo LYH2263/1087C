@@ -1,0 +1,8 @@
+process.env.NODE_ENV = 'test'
+process.env.PORT = '8001'
+process.env.JWT_SECRET = 'test-secret'
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret'
+process.env.ACCESS_TOKEN_EXPIRES_IN = '15m'
+process.env.REFRESH_TOKEN_EXPIRES_DAYS = '30'
+process.env.LOG_LEVEL = 'error'
+process.env.CORS_ORIGIN = 'http://localhost:3000'

@@ -1,0 +1,47 @@
+FROM node:20-alpine AS deps
+WORKDIR /app
+RUN apk add --no-cache openssl
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm config set registry https://registry.npmmirror.com \
+  && pnpm install --frozen-lockfile --prod
+
+FROM node:20-alpine AS builder
+WORKDIR /app
+RUN apk add --no-cache openssl
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm config set registry https://registry.npmmirror.com \
+  && pnpm install --frozen-lockfile
+
+COPY prisma ./prisma
+COPY src ./src
+COPY scripts ./scripts
+
+RUN pnpm prisma generate
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+RUN apk add --no-cache openssl tini
+ENV NODE_ENV=production \
+  PORT=8000
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY package.json ./
+
+RUN mkdir -p /app/uploads \
+  && chown -R node:node /app/uploads /app
+
+USER node
+VOLUME ["/app/uploads"]
+
+EXPOSE 8000
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "src/server.js"]

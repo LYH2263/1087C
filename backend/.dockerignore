@@ -3,3 +3,14 @@ dist
 build
 .prisma
 *.log
+coverage
+uploads
+.env
+.env.*
+.dockerignore
+Dockerfile
+Dockerfile.prod
+.git
+.github
+.pnpm-store
+pnpm-lock.yaml
