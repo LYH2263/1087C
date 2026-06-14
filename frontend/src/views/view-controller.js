@@ -14,6 +14,49 @@ export function createViewController({
     return `¥${Number(value).toFixed(2)}`;
   }
 
+  function renderPagination(pagination, actionName) {
+    if (!pagination || pagination.totalPages <= 1) {
+      return '';
+    }
+
+    const { page, totalPages, total, hasPrev, hasNext } = pagination;
+
+    const pages = [];
+    const showPages = 5;
+    let startPage = Math.max(1, page - Math.floor(showPages / 2));
+    let endPage = Math.min(totalPages, startPage + showPages - 1);
+    startPage = Math.max(1, endPage - showPages + 1);
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return `
+      <div class="flex flex-wrap items-center justify-between gap-3 mt-6">
+        <p class="text-sm text-slate-500">共 <span class="font-medium text-slate-700">${total}</span> 条记录，第 <span class="font-medium text-slate-700">${page}</span> / ${totalPages} 页</p>
+        <div class="flex gap-1">
+          <button class="btn-outline btn-sm ${hasPrev ? '' : 'opacity-50 cursor-not-allowed'}" data-action="${actionName}" data-page="${page - 1}" ${hasPrev ? '' : 'disabled'}>
+            上一页
+          </button>
+          ${startPage > 1 ? `
+            <button class="btn-outline btn-sm" data-action="${actionName}" data-page="1">1</button>
+            ${startPage > 2 ? '<span class="px-2 text-slate-400">...</span>' : ''}
+          ` : ''}
+          ${pages.map(p => `
+            <button class="btn-sm ${p === page ? 'btn-primary' : 'btn-outline'}" data-action="${actionName}" data-page="${p}">${p}</button>
+          `).join('')}
+          ${endPage < totalPages ? `
+            ${endPage < totalPages - 1 ? '<span class="px-2 text-slate-400">...</span>' : ''}
+            <button class="btn-outline btn-sm" data-action="${actionName}" data-page="${totalPages}">${totalPages}</button>
+          ` : ''}
+          <button class="btn-outline btn-sm ${hasNext ? '' : 'opacity-50 cursor-not-allowed'}" data-action="${actionName}" data-page="${page + 1}" ${hasNext ? '' : 'disabled'}>
+            下一页
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
   function formatStatus(status) {
     const map = {
       PENDING_PAYMENT: '待支付',
@@ -131,7 +174,7 @@ export function createViewController({
           </div>
         </form>
       </div>
-      ${state.loading.books ? renderSkeleton() : `<div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">${bookCards || '<div class="text-slate-500">暂无书籍</div>'}</div>`}
+      ${state.loading.books ? renderSkeleton() : `<div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">${bookCards || '<div class="text-slate-500">暂无书籍</div>'}</div>${renderPagination(state.bookPagination, 'page-books')}`}
     `;
   }
 
@@ -231,12 +274,8 @@ export function createViewController({
       return;
     }
 
-    if (state.orders.length === 0) {
-      viewContent.innerHTML = `<div class="card p-6 text-slate-500">暂无订单</div>`;
-      return;
-    }
-
-    viewContent.innerHTML = state.orders
+    viewContent.innerHTML = `
+      ${state.orders.length === 0 ? '<div class="card p-6 text-slate-500">暂无订单</div>' : state.orders
       .map(
         (order) => `
         <div class="card p-6 space-y-4">
@@ -276,7 +315,9 @@ export function createViewController({
         </div>
       `
       )
-      .join('');
+      .join('')}
+      ${renderPagination(state.orderPagination, 'page-orders')}
+    `;
   }
 
   function renderProfile() {
@@ -462,6 +503,7 @@ export function createViewController({
           </form>
         </div>
         <div class="grid lg:grid-cols-2 gap-4">${bookRows || '<div class="text-slate-500">暂无书籍</div>'}</div>
+        ${renderPagination(state.admin.bookPagination, 'page-admin-books')}
       `;
     }
 
@@ -542,6 +584,7 @@ export function createViewController({
           </div>
         </div>
         <div class="grid lg:grid-cols-2 gap-4">${orderCards || '<div class="text-slate-500">暂无订单</div>'}</div>
+        ${renderPagination(state.admin.orderPagination, 'page-admin-orders')}
       `;
     }
 

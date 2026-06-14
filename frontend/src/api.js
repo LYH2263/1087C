@@ -85,6 +85,21 @@ async function refresh() {
   return refreshing;
 }
 
+function unwrapPagination(data) {
+  if (data && Array.isArray(data.items)) {
+    return data;
+  }
+  return {
+    items: Array.isArray(data) ? data : [],
+    total: Array.isArray(data) ? data.length : 0,
+    page: 1,
+    pageSize: Array.isArray(data) ? data.length : 20,
+    totalPages: 1,
+    hasNext: false,
+    hasPrev: false
+  };
+}
+
 export const api = {
   initToken() {
     const stored = getStoredToken();
@@ -138,7 +153,7 @@ export const api = {
   },
   getBooks(params = {}) {
     const query = new URLSearchParams(params).toString();
-    return request(`/books${query ? `?${query}` : ''}`);
+    return request(`/books${query ? `?${query}` : ''}`).then(unwrapPagination);
   },
   getCategories() {
     return request('/books/categories');
@@ -166,8 +181,9 @@ export const api = {
   clearCart() {
     return request('/cart', { method: 'DELETE' });
   },
-  getOrders() {
-    return request('/orders');
+  getOrders(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return request(`/orders${query ? `?${query}` : ''}`).then(unwrapPagination);
   },
   checkout(payload) {
     return request('/orders/checkout', {
@@ -218,7 +234,7 @@ export const api = {
   admin: {
     getBooks(params = {}) {
       const query = new URLSearchParams(params).toString();
-      return request(`/admin/books${query ? `?${query}` : ''}`);
+      return request(`/admin/books${query ? `?${query}` : ''}`).then(unwrapPagination);
     },
     createBook(payload) {
       return request('/admin/books', {
@@ -255,7 +271,7 @@ export const api = {
     },
     getOrders(params = {}) {
       const query = new URLSearchParams(params).toString();
-      return request(`/admin/orders${query ? `?${query}` : ''}`);
+      return request(`/admin/orders${query ? `?${query}` : ''}`).then(unwrapPagination);
     },
     getOrderStats() {
       return request('/admin/orders/stats');

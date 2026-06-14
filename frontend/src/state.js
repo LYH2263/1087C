@@ -2,6 +2,14 @@ export const state = {
   user: null,
   view: 'books',
   books: [],
+  bookPagination: {
+    page: 1,
+    pageSize: 12,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  },
   categories: [],
   bookSearch: {
     title: '',
@@ -14,6 +22,14 @@ export const state = {
   },
   cart: [],
   orders: [],
+  orderPagination: {
+    page: 1,
+    pageSize: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  },
   addresses: [],
   loading: {
     books: false,
@@ -25,8 +41,24 @@ export const state = {
   admin: {
     tab: 'books',
     books: [],
+    bookPagination: {
+      page: 1,
+      pageSize: 10,
+      total: 0,
+      totalPages: 0,
+      hasNext: false,
+      hasPrev: false
+    },
     categories: [],
     orders: [],
+    orderPagination: {
+      page: 1,
+      pageSize: 10,
+      total: 0,
+      totalPages: 0,
+      hasNext: false,
+      hasPrev: false
+    },
     stats: null,
     editingBook: null
   },

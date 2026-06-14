@@ -92,10 +92,28 @@ const { updateAuthUI, safeRender } = createViewController({
 });
 
 async function loadBooks(params = {}) {
-  state.bookSearch = normalizeBookSearch(params);
+  if (params.title !== undefined || params.author !== undefined || params.isbn !== undefined ||
+      params.categoryId !== undefined || params.sort !== undefined ||
+      params.minPrice !== undefined || params.maxPrice !== undefined) {
+    state.bookSearch = normalizeBookSearch(params);
+    state.bookPagination.page = 1;
+  }
   state.loading.books = true;
   safeRender();
-  state.books = await api.getBooks(state.bookSearch);
+  const result = await api.getBooks({
+    ...state.bookSearch,
+    page: state.bookPagination.page,
+    pageSize: state.bookPagination.pageSize
+  });
+  state.books = result.items;
+  state.bookPagination = {
+    page: result.page,
+    pageSize: result.pageSize,
+    total: result.total,
+    totalPages: result.totalPages,
+    hasNext: result.hasNext,
+    hasPrev: result.hasPrev
+  };
   state.loading.books = false;
   safeRender();
 }
@@ -111,7 +129,19 @@ async function loadCart() {
 
 async function loadOrders() {
   if (!state.user) return;
-  state.orders = await api.getOrders();
+  const result = await api.getOrders({
+    page: state.orderPagination.page,
+    pageSize: state.orderPagination.pageSize
+  });
+  state.orders = result.items;
+  state.orderPagination = {
+    page: result.page,
+    pageSize: result.pageSize,
+    total: result.total,
+    totalPages: result.totalPages,
+    hasNext: result.hasNext,
+    hasPrev: result.hasPrev
+  };
 }
 
 async function loadAddresses() {
@@ -119,13 +149,49 @@ async function loadAddresses() {
   state.addresses = await api.getAddresses();
 }
 
+async function loadAdminBooks() {
+  if (!state.user || state.user.role !== 'ADMIN') return;
+  const result = await api.admin.getBooks({
+    page: state.admin.bookPagination.page,
+    pageSize: state.admin.bookPagination.pageSize
+  });
+  state.admin.books = result.items;
+  state.admin.bookPagination = {
+    page: result.page,
+    pageSize: result.pageSize,
+    total: result.total,
+    totalPages: result.totalPages,
+    hasNext: result.hasNext,
+    hasPrev: result.hasPrev
+  };
+}
+
+async function loadAdminOrders() {
+  if (!state.user || state.user.role !== 'ADMIN') return;
+  const result = await api.admin.getOrders({
+    page: state.admin.orderPagination.page,
+    pageSize: state.admin.orderPagination.pageSize
+  });
+  state.admin.orders = result.items;
+  state.admin.orderPagination = {
+    page: result.page,
+    pageSize: result.pageSize,
+    total: result.total,
+    totalPages: result.totalPages,
+    hasNext: result.hasNext,
+    hasPrev: result.hasPrev
+  };
+}
+
 async function loadAdmin() {
   if (!state.user || state.user.role !== 'ADMIN') return;
   state.loading.admin = true;
-  state.admin.books = await api.admin.getBooks();
-  state.admin.categories = await api.admin.getCategories();
-  state.admin.orders = await api.admin.getOrders();
-  state.admin.stats = await api.admin.getOrderStats();
+  await Promise.all([
+    loadAdminBooks(),
+    loadAdminOrders(),
+    api.admin.getCategories().then(cats => { state.admin.categories = cats; }),
+    api.admin.getOrderStats().then(stats => { state.admin.stats = stats; })
+  ]);
   state.loading.admin = false;
 }
 
@@ -251,6 +317,8 @@ bindEventHandlers({
   loadOrders,
   loadAddresses,
   loadAdmin,
+  loadAdminBooks,
+  loadAdminOrders,
   safeRender,
   openModal,
   closeModal,

@@ -140,6 +140,8 @@ export function bindEventHandlers({
   loadOrders,
   loadAddresses,
   loadAdmin,
+  loadAdminBooks,
+  loadAdminOrders,
   safeRender,
   openModal,
   closeModal,
@@ -490,6 +492,34 @@ export function bindEventHandlers({
       link.download = 'orders.csv';
       link.click();
       URL.revokeObjectURL(url);
+    },
+    'page-books': async (target) => {
+      const page = Number(target.dataset.page);
+      if (!page || page < 1) return;
+      state.bookPagination.page = page;
+      await loadBooks();
+      safeRender();
+    },
+    'page-orders': async (target) => {
+      const page = Number(target.dataset.page);
+      if (!page || page < 1) return;
+      state.orderPagination.page = page;
+      await loadOrders();
+      safeRender();
+    },
+    'page-admin-books': async (target) => {
+      const page = Number(target.dataset.page);
+      if (!page || page < 1) return;
+      state.admin.bookPagination.page = page;
+      await loadAdminBooks();
+      safeRender();
+    },
+    'page-admin-orders': async (target) => {
+      const page = Number(target.dataset.page);
+      if (!page || page < 1) return;
+      state.admin.orderPagination.page = page;
+      await loadAdminOrders();
+      safeRender();
     }
   };
 

@@ -7,6 +7,8 @@ const asyncHandler = require('../utils/asyncHandler');
 const { ApiError } = require('../errors');
 const { bookSchema, bookUpdateSchema, categorySchema } = require('../validators');
 const { toCents, fromCents } = require('../utils/money');
+const { buildBookWhere, buildBookOrderBy } = require('../utils/bookQuery');
+const { parsePaginationParams, buildPaginationResult, paginateQuery } = require('../utils/pagination');
 
 const router = express.Router();
 
@@ -54,26 +56,21 @@ function mapBook(book) {
 }
 
 router.get('/books', asyncHandler(async (req, res) => {
-  const { status, keyword } = req.query;
-  const where = {};
-  if (status) {
-    where.status = String(status);
-  }
-  if (keyword) {
-    where.OR = [
-      { title: { contains: String(keyword), mode: 'insensitive' } },
-      { author: { contains: String(keyword), mode: 'insensitive' } },
-      { isbn: { contains: String(keyword), mode: 'insensitive' } }
-    ];
-  }
+  const pagination = parsePaginationParams(req.query);
+  const where = buildBookWhere(req.query);
+  const orderBy = buildBookOrderBy(req.query.sort);
 
-  const books = await prisma.book.findMany({
+  const queryOptions = {
     where,
     include: { category: true },
-    orderBy: { createdAt: 'desc' }
-  });
+    orderBy
+  };
 
-  res.json(books.map(mapBook));
+  const { items, total } = await paginateQuery(prisma.book, queryOptions, pagination);
+  const mappedItems = items.map(mapBook);
+  const result = buildPaginationResult(mappedItems, total, pagination);
+
+  res.json(result);
 }));
 
 router.post('/upload', upload.single('file'), asyncHandler(async (req, res) => {
@@ -182,21 +179,23 @@ router.delete('/categories/:id', asyncHandler(async (req, res) => {
 
 router.get('/orders', asyncHandler(async (req, res) => {
   const { status } = req.query;
+  const pagination = parsePaginationParams(req.query);
   const where = {};
   if (status) {
     where.status = String(status);
   }
 
-  const orders = await prisma.order.findMany({
+  const queryOptions = {
     where,
     include: {
       items: true,
       user: true
     },
     orderBy: { createdAt: 'desc' }
-  });
+  };
 
-  res.json(orders.map((order) => ({
+  const { items, total } = await paginateQuery(prisma.order, queryOptions, pagination);
+  const mappedItems = items.map((order) => ({
     id: order.id,
     status: order.status,
     paymentMethod: order.paymentMethod,
@@ -222,7 +221,10 @@ router.get('/orders', asyncHandler(async (req, res) => {
       price: fromCents(item.priceCents),
       quantity: item.quantity
     }))
-  })));
+  }));
+  const result = buildPaginationResult(mappedItems, total, pagination);
+
+  res.json(result);
 }));
 
 router.get('/orders/stats', asyncHandler(async (req, res) => {

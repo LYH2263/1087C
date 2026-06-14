@@ -93,6 +93,17 @@ model Book {
   category    Category   @relation(fields: [categoryId], references: [id])
   cartItems   CartItem[]
   orderItems  OrderItem[]
+
+  // 索引建议：
+  // @@index([status, createdAt])           // 前台列表常用：status = ACTIVE + 按 createdAt 排序
+  // @@index([categoryId, status])          // 分类筛选 + 状态过滤
+  // @@index([status, priceCents])          // 价格区间查询 + 状态过滤
+  // @@index([status, sales])               // 销量排序 + 状态过滤
+  // 注：title/author/isbn 的 contains + insensitive 模糊查询
+  //     需要启用 pg_trgm 扩展并创建 GIN 索引才能有效加速：
+  //     CREATE EXTENSION IF NOT EXISTS pg_trgm;
+  //     CREATE INDEX idx_book_title_trgm ON "Book" USING gin (title gin_trgm_ops);
+  //     CREATE INDEX idx_book_author_trgm ON "Book" USING gin (author gin_trgm_ops);
 }
 
 model CartItem {
@@ -141,6 +152,11 @@ model Order {
   updatedAt     DateTime     @updatedAt
   user          User         @relation(fields: [userId], references: [id])
   items         OrderItem[]
+
+  // 索引建议：
+  // @@index([userId, createdAt])            // 用户订单列表：按用户 + 时间倒序
+  // @@index([status, createdAt])            // 后台订单列表：按状态筛选 + 时间排序
+  // @@index([createdAt])                    // 通用：按创建时间排序
 }
 
 model OrderItem {

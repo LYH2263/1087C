@@ -1,8 +1,10 @@
 const express = require('express');
 const prisma = require('../db');
 const asyncHandler = require('../utils/asyncHandler');
-const { toCents, fromCents } = require('../utils/money');
+const { fromCents } = require('../utils/money');
 const { ApiError } = require('../errors');
+const { buildBookWhere, buildBookOrderBy } = require('../utils/bookQuery');
+const { parsePaginationParams, buildPaginationResult, paginateQuery } = require('../utils/pagination');
 
 const router = express.Router();
 
@@ -23,67 +25,21 @@ function mapBook(book) {
 }
 
 router.get('/', asyncHandler(async (req, res) => {
-  const {
-    title,
-    author,
-    isbn,
-    categoryId,
-    minPrice,
-    maxPrice,
-    sort
-  } = req.query;
+  const pagination = parsePaginationParams(req.query);
+  const where = buildBookWhere(req.query, { defaultStatus: 'ACTIVE' });
+  const orderBy = buildBookOrderBy(req.query.sort);
 
-  const where = {
-    status: 'ACTIVE'
-  };
-
-  if (title) {
-    where.title = { contains: String(title), mode: 'insensitive' };
-  }
-
-  if (author) {
-    where.author = { contains: String(author), mode: 'insensitive' };
-  }
-
-  if (isbn) {
-    where.isbn = String(isbn);
-  }
-
-  if (categoryId) {
-    where.categoryId = String(categoryId);
-  }
-
-  const min = toCents(minPrice);
-  const max = toCents(maxPrice);
-
-  if (min !== null || max !== null) {
-    where.priceCents = {};
-    if (min !== null) {
-      where.priceCents.gte = min;
-    }
-    if (max !== null) {
-      where.priceCents.lte = max;
-    }
-  }
-
-  let orderBy = { createdAt: 'desc' };
-  if (sort === 'price_asc') {
-    orderBy = { priceCents: 'asc' };
-  }
-  if (sort === 'price_desc') {
-    orderBy = { priceCents: 'desc' };
-  }
-  if (sort === 'sales_desc') {
-    orderBy = { sales: 'desc' };
-  }
-
-  const books = await prisma.book.findMany({
+  const queryOptions = {
     where,
     include: { category: true },
     orderBy
-  });
+  };
 
-  res.json(books.map(mapBook));
+  const { items, total } = await paginateQuery(prisma.book, queryOptions, pagination);
+  const mappedItems = items.map(mapBook);
+  const result = buildPaginationResult(mappedItems, total, pagination);
+
+  res.json(result);
 }));
 
 router.get('/categories', asyncHandler(async (req, res) => {

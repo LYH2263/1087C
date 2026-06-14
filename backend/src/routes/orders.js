@@ -4,6 +4,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { ApiError } = require('../errors');
 const { checkoutSchema, reviewSchema } = require('../validators');
 const { fromCents } = require('../utils/money');
+const { parsePaginationParams, buildPaginationResult, paginateQuery } = require('../utils/pagination');
 
 const router = express.Router();
 
@@ -34,13 +35,20 @@ function mapOrder(order) {
 }
 
 router.get('/', asyncHandler(async (req, res) => {
-  const orders = await prisma.order.findMany({
-    where: { userId: req.user.id },
+  const pagination = parsePaginationParams(req.query);
+  const where = { userId: req.user.id };
+
+  const queryOptions = {
+    where,
     include: { items: true },
     orderBy: { createdAt: 'desc' }
-  });
+  };
 
-  res.json(orders.map(mapOrder));
+  const { items, total } = await paginateQuery(prisma.order, queryOptions, pagination);
+  const mappedItems = items.map(mapOrder);
+  const result = buildPaginationResult(mappedItems, total, pagination);
+
+  res.json(result);
 }));
 
 router.post('/checkout', asyncHandler(async (req, res) => {
