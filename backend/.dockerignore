@@ -13,4 +13,3 @@ Dockerfile.prod
 .git
 .github
 .pnpm-store
-pnpm-lock.yaml
